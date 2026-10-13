@@ -50,7 +50,12 @@ async function ensureLocalFile() {
     }
 
     const result = await syncInstruments();
-    return result && result.success;
+    if (result && result.success) {
+      instrumentCache = null;
+      return true;
+    }
+
+    return false;
   } catch (err) {
     console.log("❌ ensureLocalFile:", err.message);
     return false;

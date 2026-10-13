@@ -2,7 +2,7 @@ const axios = require("axios");
 const { getAccessToken } = require("./tokenManager");
 const Trade = require("./models/Trade");
 
-const { findInstrument } = require("./instrumentStore");
+const { ensureLocalFile, findInstrument } = require("./instrumentStore");
 const { decodeSymbol } = require("./symbolDecoder");
 const { syncSpecificOrder } = require("./syncService");
 
@@ -161,10 +161,19 @@ async function placeOrder(order) {
         `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.optionType} ${decoded.strike}`
       ];
 
-      for (const f of formats) {
-        const res = findInstrument(f);
-        instrumentKey = resolveInstrument(res);
-        if (instrumentKey) break;
+      const findOptionInstrument = () => {
+        for (const format of formats) {
+          const res = findInstrument(format);
+          instrumentKey = resolveInstrument(res);
+          if (instrumentKey) break;
+        }
+      };
+
+      findOptionInstrument();
+
+      if (!instrumentKey && await ensureLocalFile()) {
+        instrumentData = null;
+        findOptionInstrument();
       }
     }
 
