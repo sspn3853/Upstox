@@ -157,8 +157,8 @@ async function placeOrder(order) {
       const shortYear = decoded.year.slice(-2);
 
       const formats = [
+        decoded.tradingSymbol,
         `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.strike} ${decoded.optionType}`,
-        `${decoded.symbol} ${decoded.strike} ${decoded.optionType} ${decoded.day} ${decoded.month} ${shortYear}`,
         `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.optionType} ${decoded.strike}`
       ];
 
