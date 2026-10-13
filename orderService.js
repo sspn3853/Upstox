@@ -213,7 +213,6 @@ async function placeOrder(order) {
       price: 0,
 
       instrument_token: instrumentData?.instrument_key || instrumentKey,
-      exchange: exchange,
 
       order_type: order.order_type || "MARKET",
       transaction_type: action,
