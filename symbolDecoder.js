@@ -13,6 +13,21 @@ const MONTH_MAP = {
   DEC: "DEC"
 };
 
+const COMPACT_MONTH_MAP = {
+  "1": "JAN",
+  "2": "FEB",
+  "3": "MAR",
+  "4": "APR",
+  "5": "MAY",
+  "6": "JUN",
+  "7": "JUL",
+  "8": "AUG",
+  "9": "SEP",
+  O: "OCT",
+  N: "NOV",
+  D: "DEC"
+};
+
 // ==============================
 // 🔥 MCX SYMBOL LIST (EXPANDABLE)
 // ==============================
@@ -130,6 +145,33 @@ function decodeSymbol(raw) {
       instrumentType: "OPT",
       exchange,
       tradingSymbol: `${symbol} ${strike} ${type} ${day} ${monthName} ${year}`,
+      isDecoded: true
+    };
+  }
+
+  // ==============================
+  // ✅ NSE WEEKLY OPTION FORMAT
+  // NIFTY26O1920050CE
+  // ==============================
+  const weeklyOptionMatch = raw.match(
+    /^([A-Z]+)(\d{2})([1-9OND])(\d{2})(\d+)(CE|PE)$/
+  );
+
+  if (weeklyOptionMatch) {
+    const [, symbol, year, monthCode, day, strike, type] = weeklyOptionMatch;
+    const month = COMPACT_MONTH_MAP[monthCode];
+    const exchange = isMCX(symbol) ? "MCX_FO" : "NFO";
+
+    return {
+      symbol,
+      strike: Number(strike),
+      optionType: type,
+      day,
+      month,
+      year,
+      instrumentType: "OPT",
+      exchange,
+      tradingSymbol: `${symbol} ${strike} ${type} ${day} ${month} ${year}`,
       isDecoded: true
     };
   }
