@@ -171,7 +171,7 @@ function decodeSymbol(raw) {
       year,
       instrumentType: "OPT",
       exchange,
-      tradingSymbol: `${symbol} ${strike} ${type} ${day} ${month} ${year}`,
+      tradingSymbol: `${symbol} ${day} ${month} ${year} ${strike} ${type}`,
       isDecoded: true
     };
   }

@@ -141,6 +141,7 @@ function findInstrument(symbol) {
   );
 
   return {
+    instrument_key: row.instrument_key,
     instrument_token: row.instrument_key,
     lot_size: row.lot_size
   };

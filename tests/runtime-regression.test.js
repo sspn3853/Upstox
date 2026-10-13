@@ -13,7 +13,7 @@ assert.deepStrictEqual(decodeSymbol('NIFTY26O1920050CE'), {
 	year: '26',
 	instrumentType: 'OPT',
 	exchange: 'NFO',
-	tradingSymbol: 'NIFTY 20050 CE 19 OCT 26',
+	tradingSymbol: 'NIFTY 19 OCT 26 20050 CE',
 	isDecoded: true
 });
 

@@ -117,7 +117,7 @@ async function placeOrder(order) {
       if (!res) return null;
       if (typeof res === "object") {
         instrumentData = res;
-        return res.instrument_token;
+        return res.instrument_key || res.instrument_token;
       } else {
         instrumentData = null;
         return res;
@@ -157,6 +157,7 @@ async function placeOrder(order) {
       const shortYear = decoded.year.slice(-2);
 
       const formats = [
+        `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.strike} ${decoded.optionType}`,
         `${decoded.symbol} ${decoded.strike} ${decoded.optionType} ${decoded.day} ${decoded.month} ${shortYear}`,
         `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.optionType} ${decoded.strike}`
       ];
@@ -211,7 +212,7 @@ async function placeOrder(order) {
       validity: order.validity || "DAY",
       price: 0,
 
-      instrument_token: instrumentKey,
+      instrument_token: instrumentData?.instrument_key || instrumentKey,
       exchange: exchange,
 
       order_type: order.order_type || "MARKET",

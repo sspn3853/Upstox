@@ -65,7 +65,8 @@ async function run() {
 
   assert.strictEqual(result.data.order_id, "TEST-ENTRY-1");
   assert.strictEqual(orderPayloads[0].quantity, 25);
-  assert.strictEqual(orderPayloads[0].instrument_token, instrument.instrument_token);
+  assert.strictEqual(instrument.instrument_key, instrument.instrument_token);
+  assert.strictEqual(orderPayloads[0].instrument_token, instrument.instrument_key);
   assert.strictEqual(orderPayloads[0].transaction_type, "BUY");
   assert.strictEqual(orderPayloads[0].product, "D");
 
