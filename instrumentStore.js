@@ -116,40 +116,135 @@ function loadInstrumentCache() {
   return instrumentCache;
 }
 
+const MONTH_NAME_MAP = {
+  1: "JAN",
+  2: "FEB",
+  3: "MAR",
+  4: "APR",
+  5: "MAY",
+  6: "JUN",
+  7: "JUL",
+  8: "AUG",
+  9: "SEP",
+  O: "OCT",
+  N: "NOV",
+  D: "DEC",
+  JAN: "JAN",
+  FEB: "FEB",
+  MAR: "MAR",
+  APR: "APR",
+  MAY: "MAY",
+  JUN: "JUN",
+  JUL: "JUL",
+  AUG: "AUG",
+  SEP: "SEP",
+  OCT: "OCT",
+  NOV: "NOV",
+  DEC: "DEC"
+};
+
+function getLookupCandidates(symbol) {
+  const candidates = new Set();
+
+  if (!symbol) return [];
+
+  const base = normalize(symbol);
+  const stripped = base.replace(/[^A-Z0-9]/g, "");
+
+  if (base) candidates.add(base);
+  if (stripped) candidates.add(stripped);
+
+  const compactMatch = base.match(/^([A-Z]+)(\d{2})([1-9OND])(\d{2})(\d+)(CE|PE)$/);
+
+  if (compactMatch) {
+    const [, rawSymbol, year, monthCode, day, strike, optionType] = compactMatch;
+    const month = MONTH_NAME_MAP[monthCode] || monthCode;
+    const yearFull = year.length === 2 ? `20${year}` : year;
+
+    const variants = [
+      `${rawSymbol}${strike}${optionType}${day}${month}${year}`,
+      `${rawSymbol}${strike}${optionType}${day}${month}${yearFull}`,
+      `${rawSymbol} ${strike} ${optionType} ${day} ${month} ${year}`,
+      `${rawSymbol} ${strike} ${optionType} ${day} ${month} ${yearFull}`,
+      `${rawSymbol} ${day} ${month} ${year} ${strike} ${optionType}`,
+      `${rawSymbol} ${day} ${month} ${yearFull} ${strike} ${optionType}`,
+      `${rawSymbol}${day}${month}${year}${strike}${optionType}`,
+      `${rawSymbol}${day}${month}${yearFull}${strike}${optionType}`
+    ];
+
+    for (const variant of variants) {
+      candidates.add(variant);
+      candidates.add(normalize(variant));
+      candidates.add(variant.replace(/[^A-Z0-9]/g, ""));
+    }
+  }
+
+  return [...candidates];
+}
+
 // ==============================
 // 🔥 FINAL MATCH
 // ==============================
 function findInstrument(symbol) {
   const cache = loadInstrumentCache();
-
   const normalizedInput = normalize(symbol);
+  const candidates = getLookupCandidates(normalizedInput);
 
-  const row = cache.get(normalizedInput);
+  for (const candidate of candidates) {
+    const row = cache.get(candidate);
+    if (row) {
+      console.log(
+        "🎯 FOUND:",
+        candidate,
+        "→",
+        row.instrument_key,
+        "| Lot:",
+        row.lot_size
+      );
 
-  if (!row) {
-    console.log("⚠️ NOT FOUND:", normalizedInput);
-    return null;
+      return {
+        instrument_key: row.instrument_key,
+        instrument_token: row.instrument_key,
+        lot_size: row.lot_size
+      };
+    }
   }
 
-  console.log(
-    "🎯 FOUND:",
-    normalizedInput,
-    "→",
-    row.instrument_key,
-    "| Lot:",
-    row.lot_size
-  );
+  const strippedInput = normalizedInput.replace(/[^A-Z0-9]/g, "");
 
-  return {
-    instrument_key: row.instrument_key,
-    instrument_token: row.instrument_key,
-    lot_size: row.lot_size
-  };
+  for (const [cacheKey, row] of cache.entries()) {
+    const cacheKeyStripped = normalize(cacheKey).replace(/[^A-Z0-9]/g, "");
+
+    if (
+      cacheKeyStripped === strippedInput ||
+      cacheKeyStripped.includes(strippedInput) ||
+      strippedInput.includes(cacheKeyStripped)
+    ) {
+      console.log(
+        "🎯 FOUND BY FALLBACK:",
+        cacheKey,
+        "→",
+        row.instrument_key,
+        "| Lot:",
+        row.lot_size
+      );
+
+      return {
+        instrument_key: row.instrument_key,
+        instrument_token: row.instrument_key,
+        lot_size: row.lot_size
+      };
+    }
+  }
+
+  console.log("⚠️ NOT FOUND:", normalizedInput);
+  return null;
 }
 
 // ==============================
 module.exports = {
   ensureLocalFile,
   loadInstrumentCache,
-  findInstrument
+  findInstrument,
+  getLookupCandidates
 };

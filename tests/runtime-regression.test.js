@@ -17,6 +17,11 @@ assert.deepStrictEqual(decodeSymbol('NIFTY26O1920050CE'), {
 	isDecoded: true
 });
 
+const { getLookupCandidates } = require('../instrumentStore');
+const lookupCandidates = getLookupCandidates('NIFTY26O1920050CE');
+assert.ok(lookupCandidates.includes('NIFTY20050CE19OCT26'), 'weekly compact option lookup should include compact strike-style alias');
+assert.ok(lookupCandidates.includes('NIFTY 20050 CE 19 OCT 26'), 'weekly compact option lookup should include spaced trading symbol alias');
+
 const orderService = require('../orderService');
 assert.ok(orderService && typeof orderService.placeOrder === 'function', 'placeOrder should be available');
 
