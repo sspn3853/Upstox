@@ -21,7 +21,7 @@ function normalize(str) {
 }
 
 // ==============================
-async function ensureLocalFile() {
+async function ensureLocalFile(forceRefresh = false) {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -35,16 +35,18 @@ async function ensureLocalFile() {
       const diffDays =
         (now.getTime() - mtime.getTime()) / (1000 * 60 * 60 * 24);
 
-      if (diffDays < 7) {
+      if (forceRefresh) {
+        console.log("🔄 Forced refresh requested for instrument CSV...");
+      } else if (diffDays < 7) {
         console.log("📁 Instrument CSV already exists (Updated < 7 days ago)");
         return true;
+      } else {
+        console.log(
+          `⚠️ Instrument CSV is older than 7 days (${Math.floor(
+            diffDays
+          )} days old). Refreshing...`
+        );
       }
-
-      console.log(
-        `⚠️ Instrument CSV is older than 7 days (${Math.floor(
-          diffDays
-        )} days old). Refreshing...`
-      );
     } else {
       console.log("⚠️ Instrument CSV not found. Syncing...");
     }

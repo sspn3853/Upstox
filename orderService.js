@@ -159,7 +159,9 @@ async function placeOrder(order) {
       const formats = [
         decoded.tradingSymbol,
         `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.strike} ${decoded.optionType}`,
-        `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.optionType} ${decoded.strike}`
+        `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.optionType} ${decoded.strike}`,
+        `${decoded.symbol}${decoded.strike}${decoded.optionType}${decoded.day}${decoded.month}${decoded.year}`,
+        `${decoded.symbol}${decoded.day}${decoded.month}${decoded.year}${decoded.strike}${decoded.optionType}`
       ];
 
       const findOptionInstrument = () => {
@@ -172,7 +174,7 @@ async function placeOrder(order) {
 
       findOptionInstrument();
 
-      if (!instrumentKey && await ensureLocalFile()) {
+      if (!instrumentKey && await ensureLocalFile(true)) {
         instrumentData = null;
         findOptionInstrument();
       }
