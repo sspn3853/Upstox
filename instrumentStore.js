@@ -191,7 +191,7 @@ function findInstrument(symbol) {
   const candidates = getLookupCandidates(normalizedInput);
 
   for (const candidate of candidates) {
-    const row = cache.get(candidate);
+    const row = cache.get(candidate) || cache.get(normalize(candidate));
     if (row) {
       console.log(
         "🎯 FOUND:",
@@ -210,31 +210,22 @@ function findInstrument(symbol) {
     }
   }
 
-  const strippedInput = normalizedInput.replace(/[^A-Z0-9]/g, "");
+  const directMatch = cache.get(normalizedInput) || cache.get(normalizedInput.replace(/[^A-Z0-9]/g, ""));
+  if (directMatch) {
+    console.log(
+      "🎯 FOUND EXACT:",
+      normalizedInput,
+      "→",
+      directMatch.instrument_key,
+      "| Lot:",
+      directMatch.lot_size
+    );
 
-  for (const [cacheKey, row] of cache.entries()) {
-    const cacheKeyStripped = normalize(cacheKey).replace(/[^A-Z0-9]/g, "");
-
-    if (
-      cacheKeyStripped === strippedInput ||
-      cacheKeyStripped.includes(strippedInput) ||
-      strippedInput.includes(cacheKeyStripped)
-    ) {
-      console.log(
-        "🎯 FOUND BY FALLBACK:",
-        cacheKey,
-        "→",
-        row.instrument_key,
-        "| Lot:",
-        row.lot_size
-      );
-
-      return {
-        instrument_key: row.instrument_key,
-        instrument_token: row.instrument_key,
-        lot_size: row.lot_size
-      };
-    }
+    return {
+      instrument_key: directMatch.instrument_key,
+      instrument_token: directMatch.instrument_key,
+      lot_size: directMatch.lot_size
+    };
   }
 
   console.log("⚠️ NOT FOUND:", normalizedInput);

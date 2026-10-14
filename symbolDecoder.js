@@ -150,6 +150,29 @@ function decodeSymbol(raw) {
   }
 
   // ==============================
+  // ✅ 3B. COMPACT FUTURE FORMAT
+  // GOLDPETAL26OCTFUT
+  // ==============================
+  const compactFutureMatch = raw.match(/^([A-Z]+)(\d{2})([A-Z]{3})(FUT)$/);
+
+  if (compactFutureMatch) {
+    const [, symbol, year, monthToken, futureType] = compactFutureMatch;
+    const month = MONTH_MAP[monthToken.toUpperCase()];
+    const exchange = isMCX(symbol) ? "MCX_FO" : "NFO";
+
+    return {
+      symbol,
+      day: "",
+      month,
+      year,
+      instrumentType: "FUT",
+      exchange,
+      tradingSymbol: `${symbol} FUT ${month} ${year}`,
+      isDecoded: true
+    };
+  }
+
+  // ==============================
   // ✅ NSE WEEKLY OPTION FORMAT
   // NIFTY26O1920050CE
   // ==============================

@@ -16,6 +16,16 @@ assert.deepStrictEqual(decodeSymbol('NIFTY26O1920050CE'), {
 	tradingSymbol: 'NIFTY 20050 CE 19 OCT 26',
 	isDecoded: true
 });
+assert.deepStrictEqual(decodeSymbol('GOLDPETAL26OCTFUT'), {
+	symbol: 'GOLDPETAL',
+	day: '',
+	month: 'OCT',
+	year: '26',
+	instrumentType: 'FUT',
+	exchange: 'MCX_FO',
+	tradingSymbol: 'GOLDPETAL FUT OCT 26',
+	isDecoded: true
+});
 
 const { getLookupCandidates } = require('../instrumentStore');
 const lookupCandidates = getLookupCandidates('NIFTY26O1920050CE');
