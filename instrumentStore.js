@@ -184,6 +184,31 @@ function getLookupCandidates(symbol) {
   return [...candidates];
 }
 
+function getFutureIdentity(symbol) {
+  const normalized = normalize(symbol);
+  const monthPattern = "(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)";
+  const compactMatch = normalized.match(new RegExp(`^([A-Z]+)(\\d{2})${monthPattern}FUT$`));
+  const formattedMatch = normalized.match(new RegExp(`^([A-Z]+)FUT(?:\\d{1,2})?${monthPattern}(\\d{2}|\\d{4})$`));
+
+  if (compactMatch) {
+    return {
+      symbol: compactMatch[1],
+      month: compactMatch[3],
+      year: compactMatch[2].slice(-2)
+    };
+  }
+
+  if (formattedMatch) {
+    return {
+      symbol: formattedMatch[1],
+      month: formattedMatch[2],
+      year: formattedMatch[3].slice(-2)
+    };
+  }
+
+  return null;
+}
+
 // ==============================
 // 🔥 FINAL MATCH
 // ==============================
@@ -191,6 +216,32 @@ function findInstrument(symbol) {
   const cache = loadInstrumentCache();
   const normalizedInput = normalize(symbol);
   const candidates = getLookupCandidates(normalizedInput);
+  const futureIdentity = getFutureIdentity(normalizedInput);
+
+  if (futureIdentity) {
+    const futurePattern = new RegExp(
+      `^${futureIdentity.symbol}FUT\\d{1,2}${futureIdentity.month}${futureIdentity.year}$`
+    );
+
+    for (const [cacheKey, row] of cache.entries()) {
+      if (futurePattern.test(normalize(cacheKey))) {
+        console.log(
+          "🎯 FOUND FUTURE:",
+          cacheKey,
+          "→",
+          row.instrument_key,
+          "| Lot:",
+          row.lot_size
+        );
+
+        return {
+          instrument_key: row.instrument_key,
+          instrument_token: row.instrument_key,
+          lot_size: row.lot_size
+        };
+      }
+    }
+  }
 
   for (const candidate of candidates) {
     const row = cache.get(candidate) || cache.get(normalize(candidate));
@@ -239,5 +290,6 @@ module.exports = {
   ensureLocalFile,
   loadInstrumentCache,
   findInstrument,
-  getLookupCandidates
+  getLookupCandidates,
+  getFutureIdentity
 };

@@ -31,6 +31,14 @@ const { getLookupCandidates } = require('../instrumentStore');
 const lookupCandidates = getLookupCandidates('NIFTY26O1920050CE');
 assert.ok(lookupCandidates.includes('NIFTY20050CE19OCT26'), 'weekly compact option lookup should include compact strike-style alias');
 assert.ok(lookupCandidates.includes('NIFTY 20050 CE 19 OCT 26'), 'weekly compact option lookup should include spaced trading symbol alias');
+const { findInstrument, getFutureIdentity } = require('../instrumentStore');
+assert.deepStrictEqual(getFutureIdentity('GOLDPETAL26DECFUT'), {
+	symbol: 'GOLDPETAL',
+	month: 'DEC',
+	year: '26'
+});
+assert.strictEqual(findInstrument('GOLDPETAL FUT OCT 26').instrument_key, 'MCX_FO|571306');
+assert.strictEqual(findInstrument('GOLDPETAL FUT DEC 26'), null, 'future lookup must not match another expiry month');
 
 const orderService = require('../orderService');
 assert.ok(orderService && typeof orderService.placeOrder === 'function', 'placeOrder should be available');

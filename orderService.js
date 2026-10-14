@@ -143,13 +143,22 @@ async function placeOrder(order) {
       const formats = [
         `${decoded.symbol} FUT ${decoded.day} ${decoded.month} ${decoded.year}`,
         `${decoded.symbol} ${decoded.month} ${decoded.year} FUT`,
-        `${decoded.symbol} FUT`
+        `${decoded.symbol} FUT ${decoded.month} ${decoded.year}`
       ];
 
-      for (const f of formats) {
-        const res = findInstrument(f);
-        instrumentKey = resolveInstrument(res);
-        if (instrumentKey) break;
+      const findFutureInstrument = () => {
+        for (const format of formats) {
+          const res = findInstrument(format);
+          instrumentKey = resolveInstrument(res);
+          if (instrumentKey) break;
+        }
+      };
+
+      findFutureInstrument();
+
+      if (!instrumentKey && await ensureLocalFile(true)) {
+        instrumentData = null;
+        findFutureInstrument();
       }
     }
 
