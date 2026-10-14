@@ -220,8 +220,7 @@ async function placeOrder(order) {
       transaction_type: action,
 
       disclosed_quantity: 0,
-      trigger_price: 0,
-      is_amo: false
+      trigger_price: 0
     };
 
     console.log("📡 Sending:", orderPayload);
