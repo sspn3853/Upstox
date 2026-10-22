@@ -2,7 +2,7 @@ const axios = require("axios");
 const { getAccessToken } = require("./tokenManager");
 const Trade = require("./models/Trade");
 
-const { ensureLocalFile, findInstrument } = require("./instrumentStore");
+const { ensureLocalFile, findInstrument, findOptionByContractMonth } = require("./instrumentStore");
 const { decodeSymbol } = require("./symbolDecoder");
 const { syncSpecificOrder } = require("./syncService");
 
@@ -165,27 +165,41 @@ async function placeOrder(order) {
     else if (decoded.instrumentType === "OPT") {
       const shortYear = decoded.year.slice(-2);
 
-      const formats = [
-        decoded.tradingSymbol,
-        `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.strike} ${decoded.optionType}`,
-        `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.optionType} ${decoded.strike}`,
-        `${decoded.symbol}${decoded.strike}${decoded.optionType}${decoded.day}${decoded.month}${decoded.year}`,
-        `${decoded.symbol}${decoded.day}${decoded.month}${decoded.year}${decoded.strike}${decoded.optionType}`
-      ];
+      if (decoded.expiryMonthOnly) {
+        const resolveOptionByMonth = () => {
+          instrumentKey = resolveInstrument(findOptionByContractMonth(decoded));
+        };
 
-      const findOptionInstrument = () => {
-        for (const format of formats) {
-          const res = findInstrument(format);
-          instrumentKey = resolveInstrument(res);
-          if (instrumentKey) break;
+        resolveOptionByMonth();
+
+        if (!instrumentKey && await ensureLocalFile(true)) {
+          instrumentData = null;
+          resolveOptionByMonth();
         }
-      };
+      } else {
 
-      findOptionInstrument();
+        const formats = [
+          decoded.tradingSymbol,
+          `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.strike} ${decoded.optionType}`,
+          `${decoded.symbol} ${decoded.day} ${decoded.month} ${shortYear} ${decoded.optionType} ${decoded.strike}`,
+          `${decoded.symbol}${decoded.strike}${decoded.optionType}${decoded.day}${decoded.month}${decoded.year}`,
+          `${decoded.symbol}${decoded.day}${decoded.month}${decoded.year}${decoded.strike}${decoded.optionType}`
+        ];
 
-      if (!instrumentKey && await ensureLocalFile(true)) {
-        instrumentData = null;
+        const findOptionInstrument = () => {
+          for (const format of formats) {
+            const res = findInstrument(format);
+            instrumentKey = resolveInstrument(res);
+            if (instrumentKey) break;
+          }
+        };
+
         findOptionInstrument();
+
+        if (!instrumentKey && await ensureLocalFile(true)) {
+          instrumentData = null;
+          findOptionInstrument();
+        }
       }
     }
 
@@ -280,7 +294,7 @@ async function placeOrder(order) {
       requested_quantity: quantity,
       lot_size: lotSize,
       instrument: instrumentKey,
-      trading_symbol: decoded.tradingSymbol || rawSymbol,
+      trading_symbol: instrumentData?.trading_symbol || decoded.tradingSymbol || rawSymbol,
       exchange,
 
       orderId: orderId,

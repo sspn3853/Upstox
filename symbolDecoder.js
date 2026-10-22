@@ -149,7 +149,29 @@ function decodeSymbol(raw) {
     };
   }
 
-  // NIFTY26OCT23000PE: expiry day, month, strike, and option type; year defaults to current year.
+  // NIFTY26OCT23000PE: year, expiry month, strike, and option type.
+  const yearMonthOptionMatch = raw.match(
+    /^([A-Z]+)(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d+)(CE|PE)$/
+  );
+
+  if (yearMonthOptionMatch) {
+    const [, symbol, year, month, strike, optionType] = yearMonthOptionMatch;
+
+    return {
+      symbol,
+      strike: Number(strike),
+      optionType,
+      month,
+      year,
+      instrumentType: "OPT",
+      exchange: isMCX(symbol) ? "MCX_FO" : "NFO",
+      tradingSymbol: raw,
+      expiryMonthOnly: true,
+      isDecoded: true
+    };
+  }
+
+  // NIFTY6OCT23000PE: expiry day, month, strike, and option type; year defaults to current year.
   const dayMonthOptionMatch = raw.match(
     /^([A-Z]+)(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d+)(CE|PE)$/
   );

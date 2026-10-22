@@ -138,8 +138,14 @@ function loadInstrumentCache() {
       // columns:
       // trading_symbol,name,instrument_key,exchange,instrument_type,expiry,lot_size,strike_price,segment
       const trading_symbol = cols[0]?.trim();
+      const name = cols[1]?.trim().replace(/"/g, "");
       const instrument_key = cols[2]?.trim();
+      const exchange = cols[3]?.trim().replace(/"/g, "");
+      const instrument_type = cols[4]?.trim().replace(/"/g, "");
+      const expiry = cols[5]?.trim().replace(/"/g, "");
       const lot_size_raw = cols[6]?.trim();
+      const strike_price = cols[7]?.trim().replace(/"/g, "");
+      const segment = cols[8]?.trim().replace(/"/g, "");
 
       if (!instrument_key || !trading_symbol) continue;
 
@@ -152,7 +158,14 @@ function loadInstrumentCache() {
 
       instrumentCache.set(normalizedSymbol, {
         instrument_key: normalizedKey,
-        lot_size
+        lot_size,
+        trading_symbol: trading_symbol.replace(/"/g, ""),
+        name,
+        exchange,
+        instrument_type,
+        expiry: expiry.replace(/"/g, ""),
+        strike_price: Number(strike_price),
+        segment
       });
 
       // 🔍 Optional debug (enable if needed)
@@ -194,6 +207,21 @@ const MONTH_NAME_MAP = {
   OCT: "OCT",
   NOV: "NOV",
   DEC: "DEC"
+};
+
+const MONTH_NUMBER_MAP = {
+  JAN: "01",
+  FEB: "02",
+  MAR: "03",
+  APR: "04",
+  MAY: "05",
+  JUN: "06",
+  JUL: "07",
+  AUG: "08",
+  SEP: "09",
+  OCT: "10",
+  NOV: "11",
+  DEC: "12"
 };
 
 function getLookupCandidates(symbol) {
@@ -258,6 +286,36 @@ function getFutureIdentity(symbol) {
   }
 
   return null;
+}
+
+function findOptionByContractMonth(contract) {
+  const month = MONTH_NUMBER_MAP[String(contract.month || "").toUpperCase()];
+  const year = `20${String(contract.year).slice(-2)}`;
+  const expectedSegment = contract.exchange === "NFO" ? "NSE_FO" : contract.exchange;
+
+  if (!month || !contract.symbol || !contract.optionType || !Number.isFinite(Number(contract.strike))) {
+    return null;
+  }
+
+  const candidates = [...loadInstrumentCache().values()].filter((row) =>
+    row.name?.toUpperCase() === String(contract.symbol).toUpperCase() &&
+    row.instrument_type?.toUpperCase() === String(contract.optionType).toUpperCase() &&
+    row.strike_price === Number(contract.strike) &&
+    row.expiry?.startsWith(`${year}-${month}-`) &&
+    (!expectedSegment || row.segment?.toUpperCase() === String(expectedSegment).toUpperCase())
+  );
+
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b) => b.expiry.localeCompare(a.expiry));
+  const row = candidates[0];
+
+  return {
+    instrument_key: row.instrument_key,
+    instrument_token: row.instrument_key,
+    lot_size: row.lot_size,
+    trading_symbol: row.trading_symbol
+  };
 }
 
 // ==============================
@@ -343,6 +401,7 @@ module.exports = {
   stopWeeklyInstrumentSync,
   loadInstrumentCache,
   findInstrument,
+  findOptionByContractMonth,
   getLookupCandidates,
   getFutureIdentity
 };
