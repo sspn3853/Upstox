@@ -8,6 +8,7 @@ async function syncInstruments() {
   console.log("📥 Starting instrument sync for:", segments.join(", "));
 
   const allRows = [];
+  const failedSegments = [];
 
   try {
     for (const segment of segments) {
@@ -52,6 +53,7 @@ const response = await axios({
 
         if (!Array.isArray(instruments)) {
           console.log("Invalid format for", segment);
+          failedSegments.push(segment);
           continue;
         }
 
@@ -101,7 +103,14 @@ const response = await axios({
 
       } catch (err) {
         console.error(`❌ Error in ${segment}:`, err.message);
+        failedSegments.push(segment);
       }
+    }
+
+    if (failedSegments.length || allRows.length === 0) {
+      const failed = failedSegments.length ? failedSegments.join(", ") : "no instruments returned";
+      console.error("❌ Instrument sync incomplete; preserving existing CSV:", failed);
+      return { success: false, error: `Instrument sync incomplete: ${failed}` };
     }
 
     // -------------------------
@@ -139,7 +148,9 @@ const response = await axios({
       );
     }
 
-    fs.writeFileSync(filePath, csvLines.join("\n"));
+    const temporaryFilePath = `${filePath}.tmp`;
+    fs.writeFileSync(temporaryFilePath, csvLines.join("\n"));
+    fs.renameSync(temporaryFilePath, filePath);
 
     console.log(`✨ CSV saved successfully!`);
     console.log(`📁 Location: ${filePath}`);

@@ -16,6 +16,18 @@ assert.deepStrictEqual(decodeSymbol('NIFTY26O1920050CE'), {
 	tradingSymbol: 'NIFTY 20050 CE 19 OCT 26',
 	isDecoded: true
 });
+assert.deepStrictEqual(decodeSymbol('NIFTY26oct23000PE'), {
+	symbol: 'NIFTY',
+	strike: 23000,
+	optionType: 'PE',
+	day: '26',
+	month: 'OCT',
+	year: String(new Date().getFullYear()).slice(-2),
+	instrumentType: 'OPT',
+	exchange: 'NFO',
+	tradingSymbol: `NIFTY 23000 PE 26 OCT ${String(new Date().getFullYear()).slice(-2)}`,
+	isDecoded: true
+});
 assert.deepStrictEqual(decodeSymbol('GOLDPETAL26OCTFUT'), {
 	symbol: 'GOLDPETAL',
 	day: '',

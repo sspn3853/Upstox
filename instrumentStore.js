@@ -6,8 +6,12 @@ const syncInstruments = require("./syncInstruments");
 // ==============================
 const DATA_DIR = path.join(__dirname, "data");
 const FILE_PATH = path.join(DATA_DIR, "instruments.csv");
+const WEEKLY_SYNC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+const SYNC_RETRY_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 let instrumentCache = null;
+let weeklySyncTimer = null;
+let weeklySyncStopped = true;
 
 // ==============================
 function normalize(str) {
@@ -62,6 +66,53 @@ async function ensureLocalFile(forceRefresh = false) {
     console.log("❌ ensureLocalFile:", err.message);
     return false;
   }
+}
+
+function startWeeklyInstrumentSync(
+  sync = () => ensureLocalFile(true),
+  intervalMs = WEEKLY_SYNC_INTERVAL_MS
+) {
+  if (weeklySyncTimer || !weeklySyncStopped) return weeklySyncTimer;
+
+  weeklySyncStopped = false;
+
+  const scheduleNext = (delay) => {
+    weeklySyncTimer = setTimeout(runSync, delay);
+    weeklySyncTimer.unref?.();
+  };
+
+  const runSync = async () => {
+    weeklySyncTimer = null;
+    let succeeded = false;
+
+    try {
+      succeeded = await sync();
+    } catch (err) {
+      console.error("❌ Weekly instrument sync failed:", err.message);
+    }
+
+    if (!weeklySyncStopped) {
+      scheduleNext(succeeded ? intervalMs : SYNC_RETRY_INTERVAL_MS);
+    }
+  };
+
+  scheduleNext(getInitialSyncDelay(intervalMs));
+  return weeklySyncTimer;
+}
+
+function stopWeeklyInstrumentSync() {
+  weeklySyncStopped = true;
+  if (weeklySyncTimer) clearTimeout(weeklySyncTimer);
+  weeklySyncTimer = null;
+}
+
+function getInitialSyncDelay(intervalMs) {
+  if (intervalMs !== WEEKLY_SYNC_INTERVAL_MS || !fs.existsSync(FILE_PATH)) {
+    return intervalMs;
+  }
+
+  const lastUpdated = fs.statSync(FILE_PATH).mtimeMs;
+  return Math.max(0, lastUpdated + intervalMs - Date.now());
 }
 
 // ==============================
@@ -288,6 +339,8 @@ function findInstrument(symbol) {
 // ==============================
 module.exports = {
   ensureLocalFile,
+  startWeeklyInstrumentSync,
+  stopWeeklyInstrumentSync,
   loadInstrumentCache,
   findInstrument,
   getLookupCandidates,

@@ -37,8 +37,8 @@ function convertTV(signal) {
 
       order_type: signal.OT || "MARKET",
       transaction_type: transactionType,
-      target_points: targetPoints === undefined || targetPoints === "" ? null : Number(targetPoints),
-      stop_loss_points: stopLossPoints === undefined || stopLossPoints === "" ? null : Number(stopLossPoints),
+      target_points: targetPoints === undefined || targetPoints === "" || Number(targetPoints) === 0 ? null : Number(targetPoints),
+      stop_loss_points: stopLossPoints === undefined || stopLossPoints === "" || Number(stopLossPoints) === 0 ? null : Number(stopLossPoints),
 
       disclosed_quantity: 0
     };
@@ -85,8 +85,8 @@ async function handleWebhook(req, res) {
       const transactionType = typeof s?.TT === "string" ? s.TT.trim().toUpperCase() : "";
       const targetPoints = s?.TP ?? s?.target_points ?? s?.targetPoints;
       const stopLossPoints = s?.SL ?? s?.stop_loss_points ?? s?.stopLossPoints;
-      const hasValidTarget = targetPoints === undefined || targetPoints === "" || (Number.isFinite(Number(targetPoints)) && Number(targetPoints) > 0);
-      const hasValidStopLoss = stopLossPoints === undefined || stopLossPoints === "" || (Number.isFinite(Number(stopLossPoints)) && Number(stopLossPoints) > 0);
+      const hasValidTarget = targetPoints === undefined || targetPoints === "" || (Number.isFinite(Number(targetPoints)) && Number(targetPoints) >= 0);
+      const hasValidStopLoss = stopLossPoints === undefined || stopLossPoints === "" || (Number.isFinite(Number(stopLossPoints)) && Number(stopLossPoints) >= 0);
 
       if (!symbol || !Number.isFinite(quantity) || quantity <= 0 || !["BUY", "SELL"].includes(transactionType) || !hasValidTarget || !hasValidStopLoss) {
         console.log("❌ Invalid signal:", s);

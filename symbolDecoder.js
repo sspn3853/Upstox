@@ -149,6 +149,31 @@ function decodeSymbol(raw) {
     };
   }
 
+  // NIFTY26OCT23000PE: expiry day, month, strike, and option type; year defaults to current year.
+  const dayMonthOptionMatch = raw.match(
+    /^([A-Z]+)(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d+)(CE|PE)$/
+  );
+
+  if (dayMonthOptionMatch) {
+    const [, symbol, day, month, strike, optionType] = dayMonthOptionMatch;
+    const exchange = isMCX(symbol) ? "MCX_FO" : "NFO";
+    const year = String(new Date().getFullYear()).slice(-2);
+    const paddedDay = day.padStart(2, "0");
+
+    return {
+      symbol,
+      strike: Number(strike),
+      optionType,
+      day: paddedDay,
+      month,
+      year,
+      instrumentType: "OPT",
+      exchange,
+      tradingSymbol: `${symbol} ${strike} ${optionType} ${paddedDay} ${month} ${year}`,
+      isDecoded: true
+    };
+  }
+
   // ==============================
   // ✅ 3B. COMPACT FUTURE FORMAT
   // GOLDPETAL26OCTFUT

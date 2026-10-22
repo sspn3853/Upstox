@@ -48,7 +48,7 @@ const { getPositions } = require("./positionService");
 const connectDB = require("./db");
 const Trade = require("./models/Trade");
 const { startTrading, stopTrading } = require("./control");
-const { ensureLocalFile } = require("./instrumentStore");
+const { ensureLocalFile, startWeeklyInstrumentSync } = require("./instrumentStore");
 const { startProfitBooking, stopProfitBooking, getMonitoringStatus, startCleanupTimer, stopCleanupTimer } = require("./profitBooking");
 
 // ================= LOGIN =================
@@ -251,6 +251,8 @@ async function startServer() {
   await connectDB();
   loadToken();
   await ensureLocalFile();
+  startWeeklyInstrumentSync();
+  console.log("✅ Weekly instrument CSV refresh scheduled");
 
   server.on("error", (err) => {
     if (err && err.code === "EADDRINUSE") {
