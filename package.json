@@ -4,7 +4,7 @@
   "description": "",
   "main": "config.js",
   "scripts": {
-    "test": "node tests/runtime-regression.test.js && node tests/webhook-signal.test.js && node tests/instrument-sync.test.js && node tests/trade-store.test.js && node tests/restart-monitor.test.js && node tests/no-duplicate-order.test.js && node tests/order-flow.test.js",
+    "test": "node tests/runtime-regression.test.js && node tests/webhook-signal.test.js && node tests/instrument-sync.test.js && node tests/sync-orders.test.js && node tests/position-recovery.test.js && node tests/trade-store.test.js && node tests/restart-monitor.test.js && node tests/restart-port-conflict.test.js && node tests/no-duplicate-order.test.js && node tests/order-flow.test.js",
     "start": "node serverMonitor.js"
   },
   "keywords": [],

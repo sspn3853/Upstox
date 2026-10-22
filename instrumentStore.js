@@ -133,7 +133,7 @@ function loadInstrumentCache() {
       const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
       // skip header
-      if (i === 0 && cols[0]?.toLowerCase().includes("instrument")) continue;
+      if (i === 0 && normalize(cols[0]) === "TRADING_SYMBOL") continue;
 
       // columns:
       // trading_symbol,name,instrument_key,exchange,instrument_type,expiry,lot_size,strike_price,segment

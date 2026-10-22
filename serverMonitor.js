@@ -1,4 +1,4 @@
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
 const net = require('net');
 
 const defaultCommand = 'node server.js';
@@ -23,32 +23,8 @@ function isPortBusy(portNumber) {
   });
 }
 
-function freePortIfBusy(portNumber) {
-  return new Promise(async (resolve) => {
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const busy = await isPortBusy(portNumber);
-      if (!busy) {
-        resolve(true);
-        return;
-      }
-
-      if (process.platform === 'win32') {
-        const cmd = `
-          $procIds = Get-NetTCPConnection -LocalPort ${portNumber} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique;
-          foreach ($procId in $procIds) {
-            if ($procId -and $procId -gt 0) {
-              Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue;
-            }
-          }
-        `;
-        exec(`powershell -NoProfile -Command "${cmd.replace(/\r?\n/g, ' ')}"`, () => {});
-      }
-
-      await new Promise((next) => setTimeout(next, 500));
-    }
-
-    resolve(false);
-  });
+async function isPortAvailable(portNumber) {
+  return !(await isPortBusy(portNumber));
 }
 
 function parseCommand(commandLine) {
@@ -69,9 +45,9 @@ function parseCommand(commandLine) {
 async function startChild() {
   const { command: execPath, args } = parseCommand(command);
 
-  const portCleared = await freePortIfBusy(port);
-  if (!portCleared) {
-    console.error(`❌ port ${port} remains busy. monitor will not loop forever.`);
+  const portAvailable = await isPortAvailable(port);
+  if (!portAvailable) {
+    console.error(`❌ port ${port} is already in use; monitor will not terminate another process.`);
     process.exit(1);
     return;
   }
@@ -79,7 +55,7 @@ async function startChild() {
   child = spawn(execPath, args, {
     stdio: 'inherit',
     env: process.env,
-    cwd: process.cwd()
+    cwd: __dirname
   });
 
   child.on('exit', (code, signal) => {

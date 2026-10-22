@@ -4,6 +4,8 @@ const express = require("express");
 const http = require("http");
 const session = require("express-session");
 const { Server } = require("socket.io");
+const crypto = require("crypto");
+const path = require("path");
 
 const { getProfile, getCachedProfile } = require("./profileService");
 
@@ -23,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.set("trust proxy", 1);
 
 app.use(session({
-  secret: "supersecret",
+  secret: process.env.SESSION_SECRET || process.env.UPSTOX_API_SECRET || crypto.randomBytes(32).toString("hex"),
   proxy: true,
   resave: false,
   saveUninitialized: false,
@@ -37,7 +39,7 @@ app.use(session({
 }));
 
 // ================= STATIC =================
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 // ================= SERVICES =================
 const { syncOrders } = require("./syncService");
@@ -47,7 +49,7 @@ const { login, callback } = require("./authController");
 const { getPositions } = require("./positionService");
 const connectDB = require("./db");
 const Trade = require("./models/Trade");
-const { startTrading, stopTrading } = require("./control");
+const { startTrading, stopTrading, isTradingEnabled } = require("./control");
 const { ensureLocalFile, startWeeklyInstrumentSync } = require("./instrumentStore");
 const { startProfitBooking, stopProfitBooking, getMonitoringStatus, startCleanupTimer, stopCleanupTimer } = require("./profitBooking");
 
@@ -122,28 +124,6 @@ app.get("/logout", (req, res) => {
 app.post("/webhook", handleWebhook);
 
 // ================= API ROUTES =================
-function getMsUntilNextMidnight() {
-  const now = new Date();
-  const nextMidnight = new Date(now);
-  nextMidnight.setHours(24, 0, 0, 0);
-  return nextMidnight.getTime() - now.getTime();
-}
-
-function startDailyTradeLogReset() {
-  const clearTradeLog = async () => {
-    const result = await Trade.clearAll();
-    console.log(`🗑️ Trade log cleared at 00:00:00 (${result.deletedCount} records removed)`);
-  };
-
-  const nextDelay = getMsUntilNextMidnight();
-
-  setTimeout(() => {
-    clearTradeLog();
-    setInterval(clearTradeLog, 24 * 60 * 60 * 1000);
-    console.log("🧹 Daily trade log reset scheduled for 00:00:00");
-  }, nextDelay);
-}
-
 app.get("/status", (req, res) => {
   res.json({
     server: "running",
@@ -154,7 +134,7 @@ app.get("/status", (req, res) => {
 
 app.get("/control", (req, res) => {
   res.json({
-    trading: true,
+    trading: isTradingEnabled(),
     status: "online"
   });
 });
@@ -283,8 +263,6 @@ async function startServer() {
   startCleanupTimer();
   console.log("✅ Memory cleanup timer started");
 
-  startDailyTradeLogReset();
-  console.log("✅ Daily trade log reset scheduled");
 }
 
 startServer();

@@ -9,6 +9,12 @@ const { syncSpecificOrder } = require("./syncService");
 const DUPLICATE_ORDER_WINDOW_MS = 30 * 1000;
 const recentOrderRequests = new Map();
 
+function calculateOrderQuantity(quantity, lotSize, exchange) {
+  return String(exchange || "").toUpperCase().startsWith("MCX")
+    ? quantity
+    : quantity * lotSize;
+}
+
 function normalizeOrderKey(order = {}) {
   const symbol = String(order.TS || order.symbol || order.trading_symbol || "").trim().toUpperCase();
   const action = String(order.transaction_type || order.side || order.action || "").trim().toUpperCase();
@@ -215,7 +221,7 @@ async function placeOrder(order) {
         ? Number(instrumentData.lot_size)
         : 1;
 
-    const finalQty = quantity * lotSize;
+    const finalQty = calculateOrderQuantity(quantity, lotSize, exchange);
 
     if (isDuplicateOrderRequest(order)) {
       throw new Error(`Duplicate order request rejected: same order was placed within ${DUPLICATE_ORDER_WINDOW_MS / 1000} seconds`);
@@ -381,6 +387,7 @@ async function getTradeLog() {
 // ==============================
 module.exports = {
   placeOrder,
+  calculateOrderQuantity,
   getTradeLog,
   isDuplicateOrderRequest,
   hasRecentOpenOrder,

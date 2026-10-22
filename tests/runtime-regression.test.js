@@ -38,7 +38,7 @@ const { getLookupCandidates } = require('../instrumentStore');
 const lookupCandidates = getLookupCandidates('NIFTY26O1920050CE');
 assert.ok(lookupCandidates.includes('NIFTY20050CE19OCT26'), 'weekly compact option lookup should include compact strike-style alias');
 assert.ok(lookupCandidates.includes('NIFTY 20050 CE 19 OCT 26'), 'weekly compact option lookup should include spaced trading symbol alias');
-const { findInstrument, getFutureIdentity } = require('../instrumentStore');
+const { findInstrument, findOptionByContractMonth, getFutureIdentity } = require('../instrumentStore');
 assert.deepStrictEqual(getFutureIdentity('GOLDPETAL26DECFUT'), {
 	symbol: 'GOLDPETAL',
 	month: 'DEC',
@@ -46,8 +46,19 @@ assert.deepStrictEqual(getFutureIdentity('GOLDPETAL26DECFUT'), {
 });
 assert.strictEqual(findInstrument('GOLDPETAL FUT OCT 26').instrument_key, 'MCX_FO|571306');
 assert.strictEqual(findInstrument('GOLDPETAL FUT DEC 26'), null, 'future lookup must not match another expiry month');
+assert.strictEqual(findInstrument('trading_symbol'), null, 'CSV header must not be cached as an instrument');
+assert.strictEqual(findOptionByContractMonth({
+	symbol: 'NIFTY',
+	month: 'DEC',
+	year: '26',
+	strike: 22500,
+	optionType: 'CE',
+	exchange: 'NFO'
+}).instrument_key, 'NSE_FO|55326');
 
 const orderService = require('../orderService');
 assert.ok(orderService && typeof orderService.placeOrder === 'function', 'placeOrder should be available');
+assert.strictEqual(orderService.calculateOrderQuantity(2, 100, 'MCX_FO'), 2, 'MCX quantity is expressed in lots');
+assert.strictEqual(orderService.calculateOrderQuantity(2, 65, 'NFO'), 130, 'NFO quantity is expressed in units');
 
 console.log('runtime regression checks passed');

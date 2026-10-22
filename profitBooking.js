@@ -34,6 +34,11 @@ async function registerPosition(trade) {
     const entryPrice = Number(
       trade.entry_price || trade.avg_price || trade.price
     );
+    const requestedQuantity = Number(trade.requested_quantity || trade.quantity);
+    const filledQuantity = Number(trade.filled_qty);
+    const monitoredQuantity = Number.isFinite(filledQuantity) && filledQuantity > 0
+      ? Math.min(filledQuantity, requestedQuantity)
+      : requestedQuantity;
     
     // ✅ VALIDATION: Entry price must be valid positive number
     if (!Number.isFinite(entryPrice) || entryPrice <= 0) {
@@ -79,8 +84,8 @@ async function registerPosition(trade) {
       tradingSymbol,
       exchange: trade.exchange,
       side: trade.side,
-      quantity: trade.quantity,
-      orderQuantity: Number(trade.requested_quantity || trade.quantity),
+      quantity: monitoredQuantity,
+      orderQuantity: monitoredQuantity,
       entryPrice: entryPrice,
       targetPrice: targetPrice,
       targetPoints: targetPoints,
@@ -114,7 +119,7 @@ async function registerPosition(trade) {
     🎯 Target Price: ${targetPrice}
     📈 Points: ${targetPoints}
     🔄 Side: ${trade.side}
-    📦 Quantity: ${trade.quantity}
+    📦 Quantity: ${positionData.quantity}
     `);
 
   } catch (err) {
@@ -212,6 +217,7 @@ async function bookProfit(position, exitReason = "TP") {
       { orderId: position.orderId },
       {
         status: "CLOSED",
+        profit_booking_status: "BOOKED",
         target_price: position.targetPrice,
         stop_loss_price: position.stopLossPrice,
         pnl: exitReason === "SL"
@@ -254,6 +260,21 @@ async function bookProfit(position, exitReason = "TP") {
     position.status = "FAILED";
     activePositions.set(position.orderId, position);
   }
+}
+
+async function restoreActivePositions() {
+  const trades = await Trade.find({
+    profit_booking_status: "MONITORING",
+    profit_booked: { $ne: true }
+  });
+
+  for (const trade of trades) {
+    if (!activePositions.has(trade.orderId)) {
+      await registerPosition(trade);
+    }
+  }
+
+  return trades.length;
 }
 
 // ==============================
@@ -365,6 +386,10 @@ function startProfitBooking(interval = 5000) {
 
   console.log(`🟢 PROFIT BOOKING STARTED (Checking every ${interval}ms)`);
 
+  restoreActivePositions().catch((err) => {
+    console.error("❌ Failed to restore monitored positions:", err.message);
+  });
+
   monitoringInterval = setInterval(() => {
     checkAndBookProfits();
   }, interval);
@@ -443,6 +468,7 @@ function stopCleanupTimer() {
 
 module.exports = {
   registerPosition,
+  restoreActivePositions,
   checkAndBookProfits,
   startProfitBooking,
   stopProfitBooking,

@@ -2,6 +2,9 @@ const axios = require("axios");
 const Trade = require("./models/Trade");
 const { getAccessToken } = require("./tokenManager");
 
+const missingOrderWarnings = new Map();
+const MISSING_ORDER_WARNING_INTERVAL_MS = 60 * 1000;
+
 async function syncOrders() {
   try {
     const token = getAccessToken();
@@ -41,6 +44,7 @@ async function syncOrders() {
       // ✅ CASE 1: FOUND IN BROKER
       // ==============================
       if (brokerOrder) {
+        missingOrderWarnings.delete(trade.orderId);
         const newStatus = mapStatus(brokerOrder.status);
         const entryPriceToSave = brokerOrder.average_price || brokerOrder.price || 0;
         const updateFields = {
@@ -75,24 +79,11 @@ async function syncOrders() {
       // ❗ CASE 2: NOT IN BROKER
       // ==============================
       else {
-        console.log("⚠️ Not found in broker:", trade.orderId);
-
-        try {
-          await Trade.updateOne(
-            { orderId: trade.orderId },
-            {
-              status: "CLOSED" // or "CANCELLED" if you prefer
-            }
-          );
-
-          if (global.io) {
-            global.io.emit("order_update", {
-              orderId: trade.orderId,
-              status: "CLOSED"
-            });
-          }
-        } catch (updateErr) {
-          console.error(`❌ Failed to close trade ${trade.orderId}:`, updateErr.message);
+        const now = Date.now();
+        const lastWarning = missingOrderWarnings.get(trade.orderId) || 0;
+        if (now - lastWarning >= MISSING_ORDER_WARNING_INTERVAL_MS) {
+          console.warn(`⚠️ Order ${trade.orderId} missing from broker list; retaining local status`);
+          missingOrderWarnings.set(trade.orderId, now);
         }
       }
     }
