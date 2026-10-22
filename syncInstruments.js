@@ -4,8 +4,8 @@ const fs = require("fs");
 const path = require("path");
 
 async function syncInstruments() {
-  const segments = ["NSE", "BSE", "MCX", "NSE_FO"];
-  console.log("📥 Starting instrument sync for:", segments.join(", "));
+  const segments = ["complete"];
+  console.log("📥 Starting instrument sync from Upstox consolidated master");
 
   const allRows = [];
   const failedSegments = [];
